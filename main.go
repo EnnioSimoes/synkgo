@@ -6,11 +6,21 @@ import (
 	"fmt"
 	"os"
 
-	//mysql driver
 	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
+	dbSource, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/database_source")
+	if err != nil {
+		panic(err)
+	}
+	defer dbSource.Close()
+
+	dbDestination, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/database_destination")
+	if err != nil {
+		panic(err)
+	}
+	defer dbDestination.Close()
 	// createConfigFile()
 	// configSource, err := getConfig("destination")
 	// if err != nil {
@@ -20,7 +30,8 @@ func main() {
 	// println("Configuração de origem:")
 	// fmt.Println(configSource)
 
-	getSourceTables()
+	getSourceTables(dbSource)
+	getSourceTables(dbDestination)
 }
 
 type Database struct {
@@ -100,12 +111,7 @@ func getConfig(source string) (Database, error) {
 	return Database{}, nil
 }
 
-func getSourceTables() {
-	db, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/database_source")
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
+func getSourceTables(db *sql.DB) {
 	rows, err := db.Query("SHOW TABLES")
 	if err != nil {
 		panic(err)
