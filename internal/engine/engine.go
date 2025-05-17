@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/EnnioSimoes/synkgo/internal/dto"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -33,18 +34,18 @@ func main() {
 	// getSourceTables(dbDestination)
 }
 
-type Database struct {
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Database string `json:"database"`
-}
+// type Database struct {
+// 	Host     string `json:"host"`
+// 	Port     int    `json:"port"`
+// 	Username string `json:"username"`
+// 	Password string `json:"password"`
+// 	Database string `json:"database"`
+// }
 
-type Config struct {
-	DatabaseSource      Database `json:"database_source"`
-	DatabaseDestination Database `json:"database_destination"`
-}
+// type Config struct {
+// 	DatabaseSource      Database `json:"database_source"`
+// 	DatabaseDestination Database `json:"database_destination"`
+// }
 
 func createConfigFile() {
 	file, err := os.Create("synkgo.json")
@@ -53,15 +54,15 @@ func createConfigFile() {
 	}
 	defer file.Close()
 
-	config := Config{
-		DatabaseSource: Database{
+	config := dto.Config{
+		DatabaseSource: dto.Database{
 			Host:     "localhost",
 			Port:     5432,
 			Username: "user",
 			Password: "password",
 			Database: "source_db",
 		},
-		DatabaseDestination: Database{
+		DatabaseDestination: dto.Database{
 			Host:     "localhost",
 			Port:     5432,
 			Username: "user",
@@ -83,20 +84,20 @@ func createConfigFile() {
 	println("Arquivo criado com sucesso")
 }
 
-func getConfig(source string) (Database, error) {
+func getConfig(source string) (dto.Database, error) {
 	file, err := os.Open("./synkgo.json")
 	if err != nil {
 		println("Erro ao abrir o arquivo")
-		return Database{}, err
+		return dto.Database{}, err
 	}
 	defer file.Close()
 
-	var config Config
+	var config dto.Config
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&config)
 	if err != nil {
 		println("Erro ao decodificar o JSON")
-		return Database{}, err
+		return dto.Database{}, err
 	}
 
 	if source == "source" {
@@ -107,7 +108,7 @@ func getConfig(source string) (Database, error) {
 		return config.DatabaseDestination, nil
 	}
 
-	return Database{}, nil
+	return dto.Database{}, nil
 }
 
 func getTables(db *sql.DB) ([]string, error) {
