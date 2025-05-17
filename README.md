@@ -25,4 +25,4 @@ synkgo
     tables -remote -source -destination // show remote source and destination tables
     tables -compare // compare remote source and destination tables
 
-    start
+    start // Start Sync!!
