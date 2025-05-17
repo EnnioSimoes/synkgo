@@ -132,7 +132,7 @@ func getTables(db *sql.DB) ([]string, error) {
 }
 
 func GetSourceTables() ([]string, error) {
-	dbSource, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/database_destination")
+	dbSource, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/database_source")
 	if err != nil {
 		panic(err)
 	}
