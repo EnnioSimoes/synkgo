@@ -148,12 +148,14 @@ func GetSourceTables() ([]string, error) {
 	dbSource, err := sql.Open("mysql", stringConnection)
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
+		return nil, err
 	}
 	defer dbSource.Close()
 	result, err := getTables(dbSource)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
+		return nil, err
 	}
 	return result, nil
 }
@@ -180,7 +182,8 @@ func GetDestinationTables() ([]string, error) {
 	defer dbDest.Close()
 	result, err := getTables(dbDest)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
+		return nil, err
 	}
 	return result, nil
 }
