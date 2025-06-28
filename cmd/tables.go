@@ -4,12 +4,13 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"github.com/EnnioSimoes/synkgo/internal/config"
 	"github.com/EnnioSimoes/synkgo/internal/config/prompts"
 	"github.com/EnnioSimoes/synkgo/internal/engine"
 	"github.com/spf13/cobra"
 )
 
-func selectTables() {
+func selectTables() ([]string, error) {
 	tablesSource, err := engine.GetSourceTables()
 	if err != nil {
 		println("Error to get source tables")
@@ -36,6 +37,7 @@ func selectTables() {
 		println("No tables selected")
 	}
 
+	return result, nil
 }
 
 // tablesCmd represents the tables command
@@ -52,9 +54,21 @@ var tablesCmd = &cobra.Command{
 
 		if selectFlag {
 			println("Select tables")
-			selectTables()
+			tables, err := selectTables()
+			if err != nil {
+				println("Error to select tables")
+			}
 
+			configuration, err := config.GetConfigFromFile()
+			if err != nil {
+				println("Error to get config file")
+			}
+
+			configuration.SetTables(tables)
+			config.CreateConfigFile(configuration)
+			return
 		}
+
 		// result, err := engine.GetSourceTables()
 		// if err != nil {
 		// 	println("Error to get source tables")

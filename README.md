@@ -19,7 +19,7 @@ synkgo
     config -create // Generate blank template file for configuration ✅
 
     tables // show config tables
-    tables -config // config tables to save in synkgo.json (future)
+    tables -config // config tables to save in synkgo.json (future) ✅
     tables -remote // show remote tables
     tables -remote -source // show remote source tables
     tables -remote -source -destination // show remote source and destination tables
