@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/EnnioSimoes/synkgo/internal/config"
 	"github.com/spf13/cobra"
@@ -19,6 +20,23 @@ This command will display the database source and destination configuration,
 as well as the tables to sync.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// fmt.Println("config called")
+		createFlag, err := cmd.Flags().GetBool("create")
+		if err != nil {
+			println("Error to get create flag")
+			return
+		}
+
+		if _, err := os.Stat("synkgo.json"); err == nil {
+			if createFlag {
+				fmt.Println("synkgo.json already exists. Use 'synkgo init' to reinitialize.")
+				return
+			}
+		}
+
+		if createFlag {
+			config.InitializeConfig()
+		}
+
 		showConfig()
 	},
 }
@@ -64,4 +82,5 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// configCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	configCmd.Flags().BoolP("create", "c", false, "Create a new synkgo.json file if it doesn't exist")
 }
