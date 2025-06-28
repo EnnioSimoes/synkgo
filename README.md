@@ -20,9 +20,5 @@ synkgo
 
     tables // show config tables
     tables -config // config tables to save in synkgo.json (future) ✅
-    tables -remote // show remote tables
-    tables -remote -source // show remote source tables
-    tables -remote -source -destination // show remote source and destination tables
-    tables -compare // compare remote source and destination tables
 
     start // Start Sync!!
