@@ -14,14 +14,11 @@ A command line tool for copy data from one database to other, is very usefull wh
 
 synkgo
 Available Commands:
+```
   completion  Generate the autocompletion script for the specified shell
-
   config      Show the current configuration
-
   help        Help about any command
-
   init        Initialize synkgo configuration file (synkgo.json)
-
   sync        Start the synchronization process
-  
   tables      Show source and destination tables
+```
