@@ -10,7 +10,7 @@ A command line tool for copy data from one database to other, is very usefull wh
 * Create docker-compose wich MySQL and PHPMyAdmin Tlest ✅
 * Connect to database MySQL ✅
 * Create tables em Fake data to test ✅
-* Analize tables and count data
+* Analize tables and count data ✅
 
 synkgo
 Available Commands:
