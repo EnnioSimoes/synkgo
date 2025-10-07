@@ -13,12 +13,15 @@ A command line tool for copy data from one database to other, is very usefull wh
 * Analize tables and count data
 
 synkgo
-    init // Start setup configuration to save in synkgo.json ✅
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
 
-    config // Show config synkgo.json if exists ✅
-    config -create // Generate blank template file for configuration ✅
+  config      Show the current configuration
 
-    tables // show config tables
-    tables -config // config tables to save in synkgo.json (future) ✅
+  help        Help about any command
 
-    start // Start Sync!!
+  init        Initialize synkgo configuration file (synkgo.json)
+
+  sync        Start the synchronization process
+  
+  tables      Show source and destination tables

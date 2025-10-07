@@ -10,22 +10,14 @@ import (
 
 func InitializeConfig() {
 	config.InitializeConfig()
-
-	// fmt.Print("Enter database destination configuration\n")
-	// fmt.Print("Enter tables to sync\n")
-
 }
 
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Initialize synkgo configuration file (synkgo.json)",
+	Long: `Initialize synkgo configuration file (synkgo.json).
+If the file already exists, it will not be overwritten.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		InitializeConfig()
 
