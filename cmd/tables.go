@@ -69,32 +69,32 @@ var tablesCmd = &cobra.Command{
 			return
 		}
 
-		// result, err := engine.GetSourceTables()
-		// if err != nil {
-		// 	println("Error to get source tables")
-		// }
-		// println("Source tables:")
-		// for _, table := range result {
-		// 	println(table)
-		// }
+		result, err := engine.GetSourceTables()
+		if err != nil {
+			println("Error to get source tables")
+		}
+		println("Source tables:")
+		for _, table := range result {
+			println(table)
+		}
 
-		// println("=====================================")
+		println("=====================================")
 
-		// result, err = engine.GetDestinationTables()
-		// if err != nil {
-		// 	println("Error to get destination tables")
-		// }
-		// println("Destination tables:")
-		// for _, table := range result {
-		// 	println(table)
-		// }
-		// println("\nEnd of tables")
+		result, err = engine.GetDestinationTables()
+		if err != nil {
+			println("Error to get destination tables")
+		}
+		println("Destination tables:")
+		for _, table := range result {
+			println(table)
+		}
+		println("\nEnd of tables")
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(tablesCmd)
-	tablesCmd.Flags().BoolP("config", "c", false, "Select tables for copy")
+	// tablesCmd.Flags().BoolP("config", "c", false, "Select tables for copy")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
