@@ -3,132 +3,136 @@ package engine
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/EnnioSimoes/synkgo/internal/config"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func joinColumns(columns []string, separator string) string {
-	result := ""
-	for i, column := range columns {
-		if i > 0 {
-			result += separator
-		}
-		result += column
-	}
-	return result
+// Verifica nomes de tabela válidos
+func isValidTableName(name string) bool {
+	re := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+	return re.MatchString(name)
 }
 
 func Sync() {
+	// 1. Conectar aos bancos
 	dbSource, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/database_source")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Error opening source DB: %v", err)
 	}
 	defer dbSource.Close()
 
 	dbDestination, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/database_destination")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Error opening destination DB: %v", err)
 	}
 	defer dbDestination.Close()
 
+	// 2. Testar conexões
+	if err := dbSource.Ping(); err != nil {
+		log.Fatalf("Source DB unreachable: %v", err)
+	}
+	if err := dbDestination.Ping(); err != nil {
+		log.Fatalf("Destination DB unreachable: %v", err)
+	}
+
+	// 3. Carregar configuração
 	cfg, err := config.GetConfigFromFile()
 	if err != nil {
-		fmt.Println("Error getting configuration:", err)
+		log.Printf("Error getting configuration: %v", err)
 		return
 	}
 
 	tablesToSync := cfg.Tables
+	fmt.Println("Starting synchronization for tables:", tablesToSync)
 
-	// disable FOREIGN_KEY_CHECKS
-	_, err = dbDestination.Exec("SET FOREIGN_KEY_CHECKS = 0")
-	if err != nil {
-		fmt.Printf("Error disabling FOREIGN_KEY_CHECKS in destination: %v\n", err)
-		return
-	}
-
+	// 4. Processar cada tabela
 	for _, tableName := range tablesToSync {
-		// go func(tableName string) {
-		fmt.Printf("\nProcessing table: %s ...\n", tableName)
 
-		// Select all data from source database
-		rows, err := dbSource.Query(fmt.Sprintf("SELECT * FROM %s", tableName))
-		if err != nil {
-			fmt.Printf("Error selecting data from table %s in source: %v\n", tableName, err)
-			return
+		if !isValidTableName(tableName) {
+			log.Printf("⚠️ Skipping invalid table name: %s\n", tableName)
+			continue
 		}
-		defer rows.Close()
+
+		fmt.Printf("\n🔄 Syncing table: %s ...\n", tableName)
+
+		rows, err := dbSource.Query(fmt.Sprintf("SELECT * FROM `%s`", tableName))
+		if err != nil {
+			log.Printf("Error selecting data from %s: %v\n", tableName, err)
+			continue
+		}
 
 		columns, err := rows.Columns()
 		if err != nil {
-			fmt.Printf("Error getting columns for table %s: %v\n", tableName, err)
-			return
+			log.Printf("Error getting columns from %s: %v\n", tableName, err)
+			rows.Close()
+			continue
 		}
 
-		placeholders := ""
-		for i := 0; i < len(columns); i++ {
-			if i > 0 {
-				placeholders += ", "
-			}
-			placeholders += "?"
+		// Preparar placeholders
+		placeholders := strings.TrimRight(strings.Repeat("?,", len(columns)), ",")
+
+		// Desabilitar foreign keys
+		_, _ = dbDestination.Exec("SET FOREIGN_KEY_CHECKS = 0")
+
+		// Truncar a tabela
+		fmt.Printf("Truncating table %s...\n", tableName)
+		if _, err = dbDestination.Exec(fmt.Sprintf("TRUNCATE TABLE `%s`", tableName)); err != nil {
+			log.Printf("Error truncating table %s: %v\n", tableName, err)
+			rows.Close()
+			continue
 		}
 
-		// TRUCATE TABLE
-		_, err = dbDestination.Exec(fmt.Sprintf("TRUNCATE TABLE %s", tableName))
-		fmt.Printf("Truncating table %s in destination...\n", tableName)
-		if err != nil {
-			fmt.Printf("Error truncating table %s in destination: %v\n", tableName, err)
-			return
-		}
-
-		query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", tableName, joinColumns(columns, ","), placeholders)
+		// Preparar INSERT
+		query := fmt.Sprintf("INSERT INTO `%s` (%s) VALUES (%s)",
+			tableName, strings.Join(columns, ","), placeholders)
 
 		insertStmt, err := dbDestination.Prepare(query)
 		if err != nil {
-			fmt.Printf("Error preparing insert statement for table %s: %v\n", tableName, err)
-			return
+			log.Printf("Error preparing insert statement for %s: %v\n", tableName, err)
+			rows.Close()
+			continue
 		}
-		defer insertStmt.Close()
 
-		// Loop through rows and insert into destination
-		countRows := 0
+		count := 0
 		for rows.Next() {
-			// Create a slice of interface{} to hold the column values
 			values := make([]interface{}, len(columns))
+			valuePtrs := make([]interface{}, len(columns))
 			for i := range values {
-				values[i] = new(interface{})
+				valuePtrs[i] = &values[i]
 			}
 
-			if err := rows.Scan(values...); err != nil {
-				fmt.Printf("Error scanning row for table %s: %v\n", tableName, err)
+			if err := rows.Scan(valuePtrs...); err != nil {
+				log.Printf("Error scanning row in %s: %v\n", tableName, err)
 				continue
 			}
 
-			// Insert the row into the destination database
 			if _, err := insertStmt.Exec(values...); err != nil {
-				fmt.Printf("Error inserting row into table %s in destination: %v\n", tableName, err)
+				log.Printf("Error inserting row into %s: %v\n", tableName, err)
 				continue
 			}
-			countRows++
+
+			count++
 		}
+
+		rows.Close()
+		insertStmt.Close()
 
 		if err := rows.Err(); err != nil {
-			fmt.Printf("Error iterating over rows for table %s: %v\n", tableName, err)
-			return
+			log.Printf("Error iterating rows for %s: %v\n", tableName, err)
 		}
 
-		fmt.Printf("Successfully synced a total: %d rows in table %s\n", countRows, tableName)
+		// Reativar foreign keys
+		_, _ = dbDestination.Exec("SET FOREIGN_KEY_CHECKS = 1")
+
+		fmt.Printf("✅ Successfully synced %d rows in table %s\n", count, tableName)
 	}
 
-	// enable FOREIGN_KEY_CHECKS
-	_, err = dbDestination.Exec("SET FOREIGN_KEY_CHECKS = 1")
-	if err != nil {
-		fmt.Printf("Error enabling FOREIGN_KEY_CHECKS in destination: %v\n", err)
-		return
-	}
-
-	fmt.Println("\nSync completed successfully!")
+	fmt.Println("\n🎉 Sync completed successfully!")
 }
 
 func getTables(db *sql.DB) ([]string, error) {
