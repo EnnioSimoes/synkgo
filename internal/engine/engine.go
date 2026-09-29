@@ -1,10 +1,8 @@
 package engine
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
-	"os"
 	"regexp"
 	"strings"
 
@@ -12,39 +10,40 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// Verifica nomes de tabela válidos
+// isValidTableName verifica nomes de tabela válidos (proteção contra SQL injection).
 func isValidTableName(name string) bool {
 	re := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 	return re.MatchString(name)
 }
 
-func Sync() {
-	// 1. Conectar aos bancos
-	dbSource, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/database_source")
+// Sync copia os dados das tabelas configuradas do banco de origem para o
+// banco de destino, usando as credenciais definidas em synkgo.json.
+func Sync() error {
+	// 1. Carregar configuração (synkgo.json é a única fonte de credenciais)
+	cfg, err := config.GetConfigFromFile()
 	if err != nil {
-		log.Fatalf("Error opening source DB: %v", err)
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	// 2. Conectar aos bancos usando as credenciais configuradas
+	dbSource, err := config.OpenDB(cfg.DatabaseSource)
+	if err != nil {
+		return fmt.Errorf("opening source db: %w", err)
 	}
 	defer dbSource.Close()
 
-	dbDestination, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/database_destination")
+	dbDestination, err := config.OpenDB(cfg.DatabaseDestination)
 	if err != nil {
-		log.Fatalf("Error opening destination DB: %v", err)
+		return fmt.Errorf("opening destination db: %w", err)
 	}
 	defer dbDestination.Close()
 
-	// 2. Testar conexões
+	// 3. Testar conexões
 	if err := dbSource.Ping(); err != nil {
-		log.Fatalf("Source DB unreachable: %v", err)
+		return fmt.Errorf("source db unreachable: %w", err)
 	}
 	if err := dbDestination.Ping(); err != nil {
-		log.Fatalf("Destination DB unreachable: %v", err)
-	}
-
-	// 3. Carregar configuração
-	cfg, err := config.GetConfigFromFile()
-	if err != nil {
-		log.Printf("Error getting configuration: %v", err)
-		return
+		return fmt.Errorf("destination db unreachable: %w", err)
 	}
 
 	tablesToSync := cfg.Tables
@@ -133,72 +132,5 @@ func Sync() {
 	}
 
 	fmt.Println("\n🎉 Sync completed successfully!")
-}
-
-func getTables(db *sql.DB) ([]string, error) {
-	rows, err := db.Query("SHOW TABLES")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var tables []string
-	for rows.Next() {
-		var table string
-		if err := rows.Scan(&table); err != nil {
-			return nil, err
-		}
-		tables = append(tables, table)
-
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return tables, nil
-}
-
-func GetSourceTables() ([]string, error) {
-	// check if the file not exists
-	if _, err := os.Stat("synkgo.json"); os.IsNotExist(err) {
-		fmt.Println("Config file not found")
-		return nil, fmt.Errorf("config file not found")
-	}
-
-	config, err := config.GetConfigFromFile()
-	if err != nil {
-		println("Error to get config file")
-		return nil, fmt.Errorf("error to get config file")
-	}
-
-	stringConnection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
-		config.DatabaseSource.Username,
-		config.DatabaseSource.Password,
-		config.DatabaseSource.Host,
-		config.DatabaseSource.Port,
-		config.DatabaseSource.Database,
-	)
-	dbSource, err := sql.Open("mysql", stringConnection)
-	// dbSource, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/database_source")
-
-	if err != nil {
-		panic(err)
-	}
-	defer dbSource.Close()
-	result, err := getTables(dbSource)
-	if err != nil {
-		panic(err)
-	}
-	return result, nil
-}
-
-func GetDestinationTables() ([]string, error) {
-	dbDestination, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/database_destination")
-	if err != nil {
-		panic(err)
-	}
-	defer dbDestination.Close()
-	result, err := getTables(dbDestination)
-	if err != nil {
-		panic(err)
-	}
-	return result, nil
+	return nil
 }

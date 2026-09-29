@@ -131,6 +131,17 @@ func getTables(db *sql.DB) ([]string, error) {
 	return tables, nil
 }
 
+// buildDSN constrói a string de conexão MySQL a partir da configuração.
+func buildDSN(db dto.Database) string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
+		db.Username, db.Password, db.Host, db.Port, db.Database)
+}
+
+// OpenDB abre uma conexão com o banco descrito na configuração.
+func OpenDB(db dto.Database) (*sql.DB, error) {
+	return sql.Open("mysql", buildDSN(db))
+}
+
 func GetSourceTables() ([]string, error) {
 	config, err := GetConfigFromFile()
 	if err != nil {
@@ -138,15 +149,7 @@ func GetSourceTables() ([]string, error) {
 		return nil, fmt.Errorf("error to get config file")
 	}
 
-	stringConnection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
-		config.DatabaseSource.Username,
-		config.DatabaseSource.Password,
-		config.DatabaseSource.Host,
-		config.DatabaseSource.Port,
-		config.DatabaseSource.Database,
-	)
-	dbSource, err := sql.Open("mysql", stringConnection)
-
+	dbSource, err := OpenDB(config.DatabaseSource)
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
@@ -167,15 +170,7 @@ func GetDestinationTables() ([]string, error) {
 		return nil, fmt.Errorf("error to get config file")
 	}
 
-	stringConnection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s",
-		config.DatabaseDestination.Username,
-		config.DatabaseDestination.Password,
-		config.DatabaseDestination.Host,
-		config.DatabaseDestination.Port,
-		config.DatabaseDestination.Database,
-	)
-	dbDest, err := sql.Open("mysql", stringConnection)
-
+	dbDest, err := OpenDB(config.DatabaseDestination)
 	if err != nil {
 		panic(err)
 	}

@@ -6,17 +6,16 @@ package cmd
 import (
 	"github.com/EnnioSimoes/synkgo/internal/config"
 	"github.com/EnnioSimoes/synkgo/internal/config/prompts"
-	"github.com/EnnioSimoes/synkgo/internal/engine"
 	"github.com/spf13/cobra"
 )
 
 func selectTables() ([]string, error) {
-	tablesSource, err := engine.GetSourceTables()
+	tablesSource, err := config.GetSourceTables()
 	if err != nil {
 		println("Error to get source tables")
 	}
 
-	tablesDestination, err := engine.GetDestinationTables()
+	tablesDestination, err := config.GetDestinationTables()
 	if err != nil {
 		println("Error to get destination tables")
 	}
@@ -69,7 +68,7 @@ var tablesCmd = &cobra.Command{
 			return
 		}
 
-		result, err := engine.GetSourceTables()
+		result, err := config.GetSourceTables()
 		if err != nil {
 			println("Error to get source tables")
 		}
@@ -80,7 +79,7 @@ var tablesCmd = &cobra.Command{
 
 		println("=====================================")
 
-		result, err = engine.GetDestinationTables()
+		result, err = config.GetDestinationTables()
 		if err != nil {
 			println("Error to get destination tables")
 		}

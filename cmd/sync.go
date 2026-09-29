@@ -4,6 +4,9 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/EnnioSimoes/synkgo/internal/engine"
 	"github.com/spf13/cobra"
 )
@@ -16,9 +19,10 @@ var syncCmd = &cobra.Command{
 This command will read the configuration from the synkgo.json file and perform
 the data synchronization based on the specified tables.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println("sync called")
-
-		engine.Sync()
+		if err := engine.Sync(); err != nil {
+			fmt.Fprintln(os.Stderr, "sync failed:", err)
+			os.Exit(1)
+		}
 	},
 }
 
